@@ -1,10 +1,15 @@
 # torrent_example
 
 ```
-cd server
+docker-compose up
+# docker ps
+docker exec -it server bash
 go run server.go
+```
 
+``` 
 #in another terminal
-cd client1
+docker exec -it client bash
 go run client.go
 ```
+
