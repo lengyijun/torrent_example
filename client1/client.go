@@ -1,70 +1,74 @@
 package main
 
-import(
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/dht"
-	"github.com/gosuri/uiprogress"
-	"net"
+import (
 	"errors"
-	"log"
 	"fmt"
-	"github.com/dustin/go-humanize"
-	"time"
+	"log"
+	"net"
 	"os"
-	"github.com/anacrolix/torrent/metainfo"
 	"path/filepath"
+	"time"
+
+	"github.com/anacrolix/dht"
+	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/bencode"
+	"github.com/anacrolix/torrent/metainfo"
+	"github.com/dustin/go-humanize"
+	"github.com/gosuri/uiprogress"
 )
 
-func main(){
-	path:="data"
+func main() {
+	path := "data"
 
-	clientConfig:=torrent.Config{}
-	clientConfig.Seed=true
-	clientConfig.Debug=true
-	clientConfig.DisableTrackers=true
-	clientConfig.ListenAddr="127.0.0.1:7777"
-	clientConfig.DHTConfig=dht.ServerConfig{
-		StartingNodes:clientAddrs,
+	clientConfig := torrent.Config{}
+	clientConfig.Seed = true
+	clientConfig.Debug = true
+	clientConfig.DisableTrackers = true
+	clientConfig.ListenAddr = "0.0.0.0:6666"
+	clientConfig.DHTConfig = dht.ServerConfig{
+		StartingNodes: clientAddrs,
 	}
-	clientConfig.DataDir=path
-	clientConfig.DisableAggressiveUpload=false
+	clientConfig.DataDir = path
+	clientConfig.DisableAggressiveUpload = false
 
-	client,_:=torrent.NewClient(&clientConfig)
+	client, _ := torrent.NewClient(&clientConfig)
 
-	dir,_:=os.Open(clientConfig.DataDir)
+	dir, _ := os.Open(clientConfig.DataDir)
 	defer dir.Close()
 
-	fi,_ :=dir.Readdir(-1)
-	for _,x:=range fi{
-		if !x.IsDir() && x.Name()!=".torrent.bolt.db"{
-			d:=makeMagnet(path,x.Name(),client)
+	fi, _ := dir.Readdir(-1)
+	for _, x := range fi {
+		if !x.IsDir() && x.Name() != ".torrent.bolt.db" {
+			d := makeMagnet(path, x.Name(), client)
 			fmt.Println(d)
 		}
 	}
 
 	fmt.Println(len(client.Torrents()))
 
-	t,_:=client.AddMagnet("magnet:?xt=urn:btih:4b6a1fe45384c3e06dad104aa068c054dfca271e&dn=a.jpg")
+	t, _ := client.AddMagnet("magnet:?xt=urn:btih:4b6a1fe45384c3e06dad104aa068c054dfca271e&dn=a.jpg")
 	torrentBar(t)
 	go func() {
 		<-t.GotInfo()
 		t.DownloadAll()
 	}()
 	uiprogress.Start()
-	if client.WaitAll(){
+	if client.WaitAll() {
 		log.Print("ermahgerd, torrent downloaded")
 	}
 
-	select{}
+	select {}
 
 	defer client.Close()
 }
 
 func clientAddrs() (addrs []dht.Addr, err error) {
 	for _, s := range []string{
-		"127.0.0.1:6666",
-	}{
+		//"172.17.0.2:6666",
+        //"server:6666",
+        //"4f2dc3436017:6666", //server hostname
+        "server:6666", //server hostname
+	} {
 		ua, err := net.ResolveUDPAddr("udp4", s)
 		if err != nil {
 			continue
@@ -113,10 +117,10 @@ func torrentBar(t *torrent.Torrent) {
 	}()
 }
 
-func makeMagnet(dir string, name string,cl *torrent.Client) string {
+func makeMagnet(dir string, name string, cl *torrent.Client) string {
 	mi := metainfo.MetaInfo{}
 	mi.SetDefaults()
-	info := metainfo.Info{PieceLength: 1024*1024}
+	info := metainfo.Info{PieceLength: 1024 * 1024}
 	info.BuildFromFilePath(filepath.Join(dir, name))
 	mi.InfoBytes, _ = bencode.Marshal(info)
 	cl.AddTorrent(&mi)

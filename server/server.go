@@ -1,52 +1,74 @@
 package main
 
 import (
-	"github.com/anacrolix/torrent/metainfo"
+	"errors"
 	"fmt"
-	"path/filepath"
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/dht"
-	"github.com/anacrolix/torrent/bencode"
+	"net"
 	"os"
+	"path/filepath"
+
+	"github.com/anacrolix/dht"
+	"github.com/anacrolix/torrent"
+	"github.com/anacrolix/torrent/bencode"
+	"github.com/anacrolix/torrent/metainfo"
 )
 
 func main() {
-	path:="data"
+	path := "data"
 
-	clientConfig:=torrent.Config{}
-	clientConfig.Seed=true
-	clientConfig.Debug=true
-	clientConfig.DisableTrackers=true
-	clientConfig.ListenAddr="127.0.0.1:6666"
-	clientConfig.DHTConfig=dht.ServerConfig{
-		StartingNodes:dht.GlobalBootstrapAddrs,
+	clientConfig := torrent.Config{}
+	clientConfig.Seed = true
+	clientConfig.Debug = true
+	clientConfig.DisableTrackers = true
+	clientConfig.ListenAddr = "0.0.0.0:6666"
+	clientConfig.DHTConfig = dht.ServerConfig{
+		StartingNodes: serverAddrs,
 	}
-	clientConfig.DataDir=path
-	clientConfig.DisableAggressiveUpload=false
-	client,_:=torrent.NewClient(&clientConfig)
+	clientConfig.DataDir = path
+	clientConfig.DisableAggressiveUpload = false
+	client, _ := torrent.NewClient(&clientConfig)
 
-	dir,_:=os.Open(path)
+	dir, _ := os.Open(path)
 	defer dir.Close()
 
-	fi,_ :=dir.Readdir(-1)
-	for _,x:=range fi{
-		if !x.IsDir() && x.Name()!=".torrent.bolt.db"{
-			d:=makeMagnet(path,x.Name(),client)
+	fi, _ := dir.Readdir(-1)
+	for _, x := range fi {
+		if !x.IsDir() && x.Name() != ".torrent.bolt.db" {
+			d := makeMagnet(path, x.Name(), client)
 			fmt.Println(d)
 		}
 	}
 
 	fmt.Println(len(client.Torrents()))
-	select{}
+	select {}
 }
 
-func makeMagnet(  dir string, name string,cl *torrent.Client) string {
+func makeMagnet(dir string, name string, cl *torrent.Client) string {
 	mi := metainfo.MetaInfo{}
 	mi.SetDefaults()
-	info := metainfo.Info{PieceLength: 1024*1024}
+	info := metainfo.Info{PieceLength: 1024 * 1024}
 	info.BuildFromFilePath(filepath.Join(dir, name))
 	mi.InfoBytes, _ = bencode.Marshal(info)
 	cl.AddTorrent(&mi)
 	magnet := mi.Magnet(name, mi.HashInfoBytes()).String()
 	return magnet
+}
+
+func serverAddrs() (addrs []dht.Addr, err error) {
+	for _, s := range []string{
+	//	"172.17.0.3:6666",
+	//"client:6666",
+    //"a4c9bfd16ece:6666",  //client1 hostname
+    "client:6666",  //client1 hostname
+	} {
+		ua, err := net.ResolveUDPAddr("udp4", s)
+		if err != nil {
+			continue
+		}
+		addrs = append(addrs, dht.NewAddr(ua))
+	}
+	if len(addrs) == 0 {
+		err = errors.New("nothing resolved")
+	}
+	return
 }
