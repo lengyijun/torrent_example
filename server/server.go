@@ -56,10 +56,7 @@ func makeMagnet(dir string, name string, cl *torrent.Client) string {
 
 func serverAddrs() (addrs []dht.Addr, err error) {
 	for _, s := range []string{
-	//	"172.17.0.3:6666",
-	//"client:6666",
-    //"a4c9bfd16ece:6666",  //client1 hostname
-    "client:6666",  //client1 hostname
+    "client:6666",
 	} {
 		ua, err := net.ResolveUDPAddr("udp4", s)
 		if err != nil {

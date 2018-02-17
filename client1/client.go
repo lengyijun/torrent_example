@@ -64,9 +64,6 @@ func main() {
 
 func clientAddrs() (addrs []dht.Addr, err error) {
 	for _, s := range []string{
-		//"172.17.0.2:6666",
-        //"server:6666",
-        //"4f2dc3436017:6666", //server hostname
         "server:6666", //server hostname
 	} {
 		ua, err := net.ResolveUDPAddr("udp4", s)
