@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	path:="torrentData"
+	path:="data"
 
 	clientConfig:=torrent.Config{}
 	clientConfig.Seed=true
